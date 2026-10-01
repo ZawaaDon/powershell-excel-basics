@@ -1,0 +1,2 @@
+# VBA のコードは CRLF でないと Excel に取り込めない
+*.bas text eol=crlf

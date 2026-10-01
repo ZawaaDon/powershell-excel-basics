@@ -1,0 +1,14 @@
+' 引数なし：いま選ばれているシートの1行目を太字にする
+Public Sub BoldHeader()
+    ActiveSheet.Rows(1).Font.Bold = True
+End Sub
+
+' 引数あり：指定セルに文字を書く
+Public Sub WriteText(addr As String, text As String)
+    ActiveSheet.Range(addr).Value = text
+End Sub
+
+' 戻り値あり：2つの数を足す
+Public Function AddTwo(a As Double, b As Double) As Double
+    AddTwo = a + b
+End Function
