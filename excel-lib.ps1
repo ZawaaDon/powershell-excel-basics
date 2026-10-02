@@ -18,7 +18,7 @@ function Set-BoldHeader($sheet) {
 }
 
 # 指定セルに文字を書く
-#   例：Write-CellText $sheet "D1" "こんにちは"
+#   例：Write-CellText $sheet "G1" "こんにちは"
 function Write-CellText($sheet, $addr, $text) {
     $sheet.Range($addr).Value2 = $text
 }

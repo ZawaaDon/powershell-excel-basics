@@ -7,9 +7,9 @@
 #   - step2 と同じ処理を、.xlsm なしで実現する
 #
 # 使うファイル
-#   sample-org.xlsx : 元データ（書き換えない）
-#   sample.xlsx     : 毎回 sample-org.xlsx からコピーして作る作業用
-#   excel-lib.ps1   : 共通関数（Set-BoldHeader / Write-CellText / Add-Two）
+#   sample-org.xlsx   : 元データ（書き換えない）
+#   sample-step3.xlsx : 毎回 sample-org.xlsx からコピーして作る作業用（step ごとに別の名前）
+#   excel-lib.ps1     : 共通関数（Set-BoldHeader / Write-CellText / Add-Two）
 #
 # 実行方法
 #   .\step3.ps1
@@ -30,7 +30,7 @@
 
 # --- 元ファイルをコピーしてから処理する（毎回同じ状態から始める） ---
 $srcPath = "E:\dev\excel\sample-org.xlsx"
-$dstPath = "E:\dev\excel\sample.xlsx"
+$dstPath = "E:\dev\excel\sample-step3.xlsx"
 Copy-Item $srcPath $dstPath -Force -ErrorAction Stop    # 失敗したらここで止める
 
 # --- Excel を起動する ---
@@ -45,7 +45,8 @@ try {
 
     # --- 関数を呼ぶ（カッコとカンマは使わず、空白で区切る） ---
     Set-BoldHeader $sheet                       # 引数はシートだけ
-    Write-CellText $sheet "D1" "関数から"       # 引数あり
+    # 書き込み先は表（A〜E列）の外の空いているセルにして、元のデータを上書きしない
+    Write-CellText $sheet "G1" "関数から"       # 引数あり
     $sum = Add-Two 3 4                          # 戻り値あり
     Write-Host "Add-Two = $sum"
 

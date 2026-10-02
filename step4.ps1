@@ -7,10 +7,10 @@
 #   - step2 と同じ処理を、.xlsm なしで実現する
 #
 # 使うファイル
-#   sample-org.xlsx : 元データ（書き換えない）
-#   sample.xlsx     : 毎回 sample-org.xlsx からコピーして作る作業用
-#   vba\*.bas       : VBA のコード（このフォルダの .bas をすべて取り込む）
-#                       Module1.bas : BoldHeader / WriteText / AddTwo
+#   sample-org.xlsx   : 元データ（書き換えない）
+#   sample-step4.xlsx : 毎回 sample-org.xlsx からコピーして作る作業用（step ごとに別の名前）
+#   vba\*.bas         : VBA のコード（このフォルダの .bas をすべて取り込む）
+#                         Module1.bas : BoldHeader / WriteText / AddTwo / SumArray / SafeCalc / UnsafeSqrt
 #
 # 事前の設定（必須。オフだと「VBA プロジェクトにアクセスできません」で止まる）
 #   Excel → ファイル → オプション → トラスト センター → トラスト センターの設定
@@ -33,7 +33,7 @@
 
 # --- 元ファイルをコピーしてから処理する（毎回同じ状態から始める） ---
 $srcPath = "E:\dev\excel\sample-org.xlsx"
-$dstPath = "E:\dev\excel\sample.xlsx"
+$dstPath = "E:\dev\excel\sample-step4.xlsx"
 $vbaDir  = "$PSScriptRoot\vba"                  # VBA のコード（.bas）を置くフォルダ
 Copy-Item $srcPath $dstPath -Force -ErrorAction Stop    # 失敗したらここで止める
 
@@ -67,7 +67,8 @@ try {
 
     # --- マクロを呼ぶ：'ブック名'!マクロ名 ---
     $excel.Run($macroName + "BoldHeader")                       # 引数なし
-    $excel.Run($macroName + "WriteText", "D1", "マクロから")     # 引数あり
+    # 書き込み先は表（A〜E列）の外の空いているセルにして、元のデータを上書きしない
+    $excel.Run($macroName + "WriteText", "G1", "マクロから")     # 引数あり
     $sum = $excel.Run($macroName + "AddTwo", 3, 4)              # 戻り値あり
     Write-Host "AddTwo = $sum"
 

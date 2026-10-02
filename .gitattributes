@@ -1,2 +1,5 @@
 # VBA のコードは CRLF でないと Excel に取り込めない
 *.bas text eol=crlf
+
+# bat ファイルは CRLF でないと正しく動かないことがある
+*.bat text eol=crlf

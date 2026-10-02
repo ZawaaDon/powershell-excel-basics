@@ -12,3 +12,33 @@ End Sub
 Public Function AddTwo(a As Double, b As Double) As Double
     AddTwo = a + b
 End Function
+
+' 配列を受け取る：配列の中身をすべて足す
+Public Function SumArray(values As Variant) As Double
+    Dim v As Variant
+    For Each v In values
+        SumArray = SumArray + v
+    Next
+End Function
+
+' マクロの中でエラーを処理する：計算結果、または "ERROR:" で始まる文字列を返す
+'   kind: "sqrt", "log", "acos", "exp", "div"
+Public Function SafeCalc(kind As String, x As Double) As Variant
+    On Error GoTo Failed
+    Select Case kind
+        Case "sqrt": SafeCalc = Sqr(x)                                  ' x < 0    -> エラー 5
+        Case "log":  SafeCalc = Log(x)                                  ' x <= 0   -> エラー 5
+        Case "acos": SafeCalc = Application.WorksheetFunction.Acos(x)   ' |x| > 1  -> エラー 1004
+        Case "exp":  SafeCalc = Exp(x)                                  ' 大きすぎ -> エラー 6（オーバーフロー）
+        Case "div":  SafeCalc = 1 / x                                   ' x = 0    -> エラー 11
+        Case Else:   Err.Raise 5, , "unknown kind: " & kind
+    End Select
+    Exit Function
+Failed:
+    SafeCalc = "ERROR: " & Err.Number & " " & Err.Description
+End Function
+
+' エラー処理なし：ここでエラーが起きると、ダイアログが出て Excel が待ち続ける
+Public Function UnsafeSqrt(x As Double) As Double
+    UnsafeSqrt = Sqr(x)
+End Function

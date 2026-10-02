@@ -8,8 +8,8 @@
 #   - 後始末（Excel のプロセスを残さない）
 #
 # 使うファイル
-#   sample-org.xlsx : 元データ（書き換えない）
-#   sample.xlsx     : 毎回 sample-org.xlsx からコピーして作る作業用
+#   sample-org.xlsx   : 元データ（書き換えない）
+#   sample-step1.xlsx : 毎回 sample-org.xlsx からコピーして作る作業用（step ごとに別の名前）
 #
 # 実行方法
 #   .\step1.ps1
@@ -23,7 +23,7 @@
 
 # --- 元ファイルをコピーしてから処理する（毎回同じ状態から始める） ---
 $srcPath = "E:\dev\excel\sample-org.xlsx"
-$dstPath = "E:\dev\excel\sample.xlsx"
+$dstPath = "E:\dev\excel\sample-step1.xlsx"
 Copy-Item $srcPath $dstPath -Force -ErrorAction Stop    # 失敗したらここで止める
 
 # --- Excel を起動する ---
