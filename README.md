@@ -1,6 +1,6 @@
 # PowerShell で Excel を操作する基本
 
-PowerShell から Excel を動かすサンプル集です。セルの読み書きから始めて、VBA マクロの呼び出し、bat ファイルとの連携、エラーの扱いまでを 7 つの step で順に学びます。
+PowerShell から Excel を動かすサンプル集です。セルの読み書きから始めて、VBA マクロの呼び出し、bat ファイルとの連携、エラーの扱い、人に渡して動かすときの注意までを 8 つの step で順に学びます。
 
 各 step には見本のスクリプト（`stepN.ps1`）があります。この README の「打ち込むコード」を自分で入力して動かし、見本と比べながら進めてください。
 
@@ -26,8 +26,9 @@ flowchart LR
 | 5 | アドイン（.xlam）のマクロを呼ぶ | `step5.ps1` | `macros.xlam` |
 | 6 | bat から ps を呼ぶ、ps から ps を呼ぶ、値を返す | `step6.ps1` `step6.bat` | `step6-sub.ps1` `step6-macro.ps1` |
 | 7 | エラーが起きたときの扱い方 | `step7.ps1` `step7.bat` | `macros.xlsm` |
+| 8 | 人に渡して動かす（起動用の bat、5.1 と 7、実行ポリシー） | `step8.ps1` `step8.bat` | `step6-sub.ps1` |
 
-step1 が土台で、step2〜5 は「処理をどこに書くか」の選択肢です。新しく書くなら step3、すでにある VBA を使うなら step2・4・5 を選びます。step6 と step7 はどの方法とも組み合わせて使います。
+step1 が土台で、step2〜5 は「処理をどこに書くか」の選択肢です。新しく書くなら step3、すでにある VBA を使うなら step2・4・5 を選びます。step6〜8 はどの方法とも組み合わせて使います。
 
 ## 準備
 
@@ -373,8 +374,10 @@ result = Hanako さんに 2 回あいさつしました
 - `%~dp0` は bat ファイル自身があるフォルダです。
 - `for /f` は、スクリプトが画面に出したものをすべて受け取ります。値を返すスクリプトでは、返したい 1 行のほかは出力しません。
 - そのまま出力した値が戻り値になります。`Write-Host` の表示は戻り値に入りません。
+- `%ERRORLEVEL%` は cmd が自動で値を入れる名前です。宣言せずに読めます。自分で `set ERRORLEVEL=...` はしません。
+- `for /f` の中で実行したスクリプトの終了コードは `%ERRORLEVEL%` に入りません（別の cmd で実行され、終了コードは捨てられます）。成功したかどうかは、受け取った値が空かどうかで判断します。終了コードも見たいときは、出力をファイルに書き出して `set /p` で読みます。
 
-**試してみる**: `step6.bat` を実行し、`step6-macro.ps1` がマクロで計算した値（21.5）を bat が受け取る流れを読む。
+**試してみる**: `step6.bat` を実行し、`step6-macro.ps1` がマクロで計算した値（21.5）を bat が受け取る流れを読む。最後の2つは同じ値を別の書き方で受け取っています（長い部分を変数にまとめる書き方と、ファイル経由で終了コードも見る書き方）。
 
 ## Step 7 : エラーが起きたときの扱い方
 
@@ -428,12 +431,106 @@ Sqrt(-1) : 計算できません（NaN）
 
 **試してみる**: `SafeCalc` の第 1 引数を `"log"` `"acos"` `"exp"` `"div"` に変え、どの値で計算できなくなるか確かめる。続けて見本の `.\step7.ps1` を実行し、時間切れと異常終了の扱い（4 と 5）を読む。実行には 10 秒ほどかかります。
 
+## Step 8 : 人に渡して動かす
+
+**学ぶこと**: bat は入口だけにして、処理は ps に書く。PowerShell のバージョンを決める。実行ポリシーで止まらないようにする。
+
+この step は Excel を使わずに練習します（見本の `step8.ps1` は `step6-sub.ps1` を呼んで Excel に書き込みます）。
+
+### bat と ps の役割分担
+
+bat から値を受け取るには `for /f` が要り、終了コードも取れなくなります（Step 6）。そこで、bat は起動するだけにして、値のやり取りは ps どうしで行います。
+
+```mermaid
+flowchart LR
+    user["ダブルクリック"] --> bat["bat（入口）"]
+    bat -->|"引数 %*"| main["本体の ps"]
+    main -->|"& で呼ぶ・戻り値を受け取る"| sub["処理の ps"]
+    main -.->|"終了コードだけ"| bat
+```
+
+bat が向いているのは「起動する」ことです。
+
+- ダブルクリックで実行できます（.ps1 をダブルクリックすると、メモ帳で開くだけです）。
+- `-ExecutionPolicy Bypass` を付けて、実行ポリシーで止められずに動かせます。
+- `pwsh` か `powershell` かを決めて起動できます。
+- 最後の `pause` で、結果を読むまでウィンドウを閉じずにおけます。
+- タスクスケジューラやほかのツールから呼びやすい形です。
+
+### PowerShell 5.1 と 7
+
+| | PowerShell 5.1 | PowerShell 7 |
+|---|---|---|
+| コマンド | `powershell` | `pwsh` |
+| 入手 | Windows に最初から入っている | 自分でインストールする |
+| BOM なしの .ps1 の読み方 | Windows の文字コード（日本語版は Shift-JIS）。日本語が化ける | UTF-8 |
+
+- どちらで動くかは、起動したコマンドで決まります。`& "パス"` で呼んだスクリプトは、呼んだ側と同じバージョンで動きます。
+- スクリプトの先頭に `#Requires -Version 7` と書くと、5.1 で実行したときに 1 行目も動かずに止まります。
+- 今どちらで動いているかは `$PSVersionTable.PSVersion` で確かめます。
+
+### 打ち込むコード
+
+呼ばれる側には、Step 6 で作った `my-sub.ps1` を使います（まだなければ Step 6 のコードで作ってください）。
+
+本体を `my-step8.ps1` として入力します。
+
+```powershell
+#Requires -Version 7
+param(
+    [string]$Name = "名無し"
+)
+$ErrorActionPreference = "Stop"
+
+Write-Host "PowerShell = $($PSVersionTable.PSVersion)"
+Write-Host "実行ポリシー = $(Get-ExecutionPolicy)"
+
+$result = & "$PSScriptRoot\my-sub.ps1" $Name 2
+Write-Host "戻り値 = $result"
+```
+
+入口を `my-step8.bat` として入力します。2 つ目の呼び出しは、5.1 で止まることを確かめるためのものです。
+
+```bat
+@echo off
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0my-step8.ps1" %*
+echo exit code = %ERRORLEVEL%
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0my-step8.ps1" %*
+echo exit code = %ERRORLEVEL%
+
+pause
+```
+
+コマンドプロンプトで `my-step8.bat Hanako` と実行します。実行結果:
+
+```text
+PowerShell = 7.6.6
+実行ポリシー = Bypass
+戻り値 = Hanako さんに 2 回あいさつしました
+exit code = 0
+The script 'my-step8.ps1' cannot be run because it contained a "#requires" statement for Windows PowerShell 7.0. ...
+exit code = 1
+```
+
+バージョンの数字は、入っている PowerShell によって変わります。5.1 のエラーは英語で表示されることがあります。
+
+**つまずきやすい点**
+
+- `%*` は、bat が受け取った引数をすべてそのまま渡します。ダブルクリックで実行したときは引数なしになり、`param` に書いた省略時の値が使われます。
+- `#Requires` はコメントに見えますが、命令です。`#` と `Requires` の間に空白を入れません。
+- 実行ポリシーは PC の設定です。`-ExecutionPolicy Bypass` はその 1 回の実行だけに効き、PC の設定は変えません。PowerShell から直接 `Get-ExecutionPolicy` を実行すると、`RemoteSigned` など PC の設定が表示されます。
+- ネットやメールから受け取ったファイルには「別の PC から来た」印が付いていて、`RemoteSigned` の PC では実行が止められます。中身を確かめてから `Unblock-File .\ファイル名.ps1` で印を外します（ファイルのプロパティの「許可する」でも外せます）。bat から `-ExecutionPolicy Bypass` で起動した場合は止まりません。
+- `pwsh` が入っていない PC では、bat の `pwsh` の行が「認識されていません」で失敗し、終了コードは 9009 になります。
+
+**試してみる**: `my-step8.bat` をダブルクリックして、引数なしの結果を見る。続けて見本の `step8.bat` を実行し、本体（`step8.ps1`）が `step6-sub.ps1` を呼んで Excel に書き込む流れを読む。
+
 ## ファイル一覧
 
 | ファイル | 内容 |
 |---|---|
-| `step1.ps1`〜`step7.ps1` | 各 step の見本 |
-| `step6.bat` `step7.bat` | bat から呼ぶ見本 |
+| `step1.ps1`〜`step8.ps1` | 各 step の見本 |
+| `step6.bat` `step7.bat` `step8.bat` | bat から呼ぶ見本 |
 | `step6-sub.ps1` `step6-macro.ps1` | step6 で呼ばれる側のスクリプト |
 | `excel-lib.ps1` | step3 の共通関数 |
 | `sample-org.xlsx` | 元データ（書き換えない） |
@@ -445,5 +542,5 @@ Sqrt(-1) : 計算できません（NaN）
 
 - **Excel が残った**: `Get-Process excel` で確認し、`Stop-Process -Id 番号` で終了します。自分で開いている Excel まで閉じないよう、番号を指定してください。
 - **スクリプトが止まったまま戻らない**: 見えない Excel がダイアログを出して待っています。ひな形の `$excel.Visible = $false` を `$true` にすると、何が出ているか見えます。
-- **「このシステムではスクリプトの実行が無効」と出る**: `pwsh -ExecutionPolicy Bypass -File .\my-step1.ps1` で実行します。
-- **日本語が化ける**: Windows 標準の PowerShell 5.1（`powershell`）ではなく、PowerShell 7（`pwsh`）で実行してください。
+- **「このシステムではスクリプトの実行が無効」と出る**: `pwsh -ExecutionPolicy Bypass -File .\my-step1.ps1` で実行します（Step 8 を参照）。
+- **日本語が化ける**: Windows 標準の PowerShell 5.1（`powershell`）ではなく、PowerShell 7（`pwsh`）で実行してください（Step 8 を参照）。

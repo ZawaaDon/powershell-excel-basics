@@ -10,6 +10,7 @@ rem   -File           : the script to run; its arguments follow
 rem   -ExecutionPolicy Bypass : allow the script for this run only
 rem   -NoProfile      : do not load the user profile
 rem   %ERRORLEVEL%    : exit code of the last command (0 = OK)
+rem                     set by cmd itself: do not "set ERRORLEVEL=..."
 rem
 rem   Comments are in English: Japanese text in a bat file
 rem   may be garbled depending on the code page.
@@ -38,6 +39,35 @@ if defined RESULT (
     echo result = %RESULT%
 ) else (
     echo result = [failed]
+)
+rem Note: ERRORLEVEL can NOT tell success here.
+rem The command inside for /f runs in another cmd, and its exit code
+rem is thrown away. ERRORLEVEL keeps the value from before the for /f.
+rem That is why we check whether RESULT is empty.
+
+rem --- same as above, shorter: put the common part in a variable ---
+set PS=pwsh -NoProfile -ExecutionPolicy Bypass -File
+set RESULT=
+for /f "usebackq delims=" %%A in (`%PS% "%~dp0step6-macro.ps1" 5 6`) do set RESULT=%%A
+if defined RESULT (
+    echo result = %RESULT%
+) else (
+    echo result = [failed]
+)
+
+rem --- get a value back AND the exit code: write it to a file ---
+rem pwsh runs directly (not inside for /f), so ERRORLEVEL is its exit code.
+rem Save ERRORLEVEL right away: the next command overwrites it.
+rem set /p reads the first line of the file into RESULT.
+set RESULT=
+%PS% "%~dp0step6-macro.ps1" 5 6 > "%TEMP%\step6-result.txt"
+set EXITCODE=%ERRORLEVEL%
+set /p RESULT=<"%TEMP%\step6-result.txt"
+del "%TEMP%\step6-result.txt"
+if %EXITCODE%==0 (
+    echo result = %RESULT%
+) else (
+    echo result = [failed] exit code = %EXITCODE%
 )
 
 pause

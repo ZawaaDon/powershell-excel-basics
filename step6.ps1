@@ -10,6 +10,7 @@
 #   step6-sub.ps1     : 呼ばれる側（指定セルに文字を書く。引数 -Addr / -Text）
 #   step6.bat         : 同じ呼び出しを bat ファイルから行う
 #                       最後に step6-macro.ps1 を呼び、マクロで計算した値を bat で受け取る
+#                       （for /f で受け取る / 長い部分を変数にまとめる / ファイル経由で終了コードも見る の3通り）
 #   step6-macro.ps1   : 呼ばれる側（.xlsm と .xlam のマクロで計算し、結果を1行返す）
 #   sample-step6.xlsx : step6-sub.ps1 が毎回 sample-org.xlsx からコピーして作る作業用
 #
