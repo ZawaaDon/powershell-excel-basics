@@ -1,4 +1,4 @@
-# step1〜6 が毎回 sample-org.xlsx から作り直す作業用ファイル
+# 各 step が毎回 sample-org.xlsx から作り直す作業用ファイル
 sample-step*.xlsx
 
 # README の練習で自分が作るファイル（my-step1.ps1、my-sample.xlsx など）

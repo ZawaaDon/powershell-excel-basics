@@ -58,7 +58,7 @@ git clone https://github.com/ZawaaDon/powershell-excel-basics.git E:\dev\excel
 3. PowerShell で `.\my-stepN.ps1` を実行し、「実行結果」と同じになるか確かめます。
 4. 見本の `.\stepN.ps1` も実行して、結果とコードを比べます。
 
-`my-` で始まるファイルは git の管理対象外にしてあるので、自由に作って構いません。練習用のスクリプトは `my-sample.xlsx` に書き込みます。
+`my-` で始まるファイルは git の管理対象外にしてあるので、自由に作って構いません。練習用のスクリプトは `my-sample.xlsx` に書き込みます。step ごとに `my-sample-step1.xlsx` のように名前を変えておくと、あとで結果を見比べられます。
 
 ### ひな形
 
@@ -138,7 +138,7 @@ o
 
 - 行、列、シートの番号はすべて 1 から始まります。
 - VBA の定数名（`xlUp` など）は使えないので、数値（`-4162`）で指定します。
-- プロパティ名を間違えて読むと、エラーにならず `$null` が返ります。
+- プロパティ名を間違えて読むと、エラーにならず `$null` が返ります。エラーにして気づきたいときは、Step 7 の `Set-StrictMode` を使います。
 
 **試してみる**: B列を読むように変える。G2 に数式 `=SUM(1,2,3)` を書く（`.Formula` を使う）。
 
@@ -461,9 +461,24 @@ Sqrt(-1) : 計算できません（NaN）
 
 - PowerShell は、エラーが起きてもメッセージを出して次の行へ進むことが多く、最後まで進むと終了コードは 0（成功）になります。先頭に `$ErrorActionPreference = "Stop"` を書くと、エラーの行で止まります。
 - マクロの中で起きたエラーは、PowerShell の `try` / `catch` では受けられません。Excel がエラーのダイアログを出して待ち続けます。マクロ側で `On Error` を書き、戻り値でエラーを知らせます（`macros.txt` の `SafeCalc` を参照）。
-- Excel が異常終了すると、その後の呼び出しはすべてエラーになります。`Quit()` も失敗するので、後始末にも `try` / `catch` が要ります。
+- Excel が異常終了すると、その後の呼び出しはすべてエラーになります。`Quit()` も失敗するので、後始末にも `try` / `catch` が要ります（下の「後始末を止まらない形にする」）。
+- 名前の打ち間違いは、エラーにならないことがあります。作っていない変数（`$cases` のつもりの `$case` など）を読むと `$null` になり、`foreach` は 1 回も回らずに先へ進みます。先頭に `Set-StrictMode -Version Latest` を書くと、作っていない変数や、Excel にないプロパティ（`$excel.Workbookz` など）を読んだ時点でエラーになります。ひな形の `finally` は、step によっては作っていない `$macroBook` を読むので、使うときは `try` の前に `$book = $null` と `$macroBook = $null` を書いておきます。
+- `Start-ThreadJob` で動かした見張り役の中のエラーは、画面に出ません。途中でエラーが起きても次の行へ進み、状態も `Completed` になります。たとえば `Start-Sleep -Seconds` の秒数を書き忘れると、待たずにすぐ Excel を終了させます。おかしいときは `Receive-Job $watchdog` を実行すると、ジョブの中のエラーが表示されます。
 
-**試してみる**: `SafeCalc` の第 1 引数を `"log"` `"acos"` `"exp"` `"div"` に変え、どの値で計算できなくなるか確かめる。続けて見本の `.\step7.ps1` を実行し、時間切れと異常終了の扱い（4 と 5）を読む。実行には 10 秒ほどかかります。
+### 後始末を止まらない形にする
+
+ひな形の `finally` は、Excel が動いている前提で書いてあります。Excel が落ちた後でも止まらないように、次の関数を `try` の前に足します（見本の `step7.ps1` と同じ）。
+
+```powershell
+function Stop-ExcelSafely($excel) {
+    try { $excel.Quit() } catch { }
+    try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } catch { }
+}
+```
+
+`finally` の中の `$excel.Quit()` と `ReleaseComObject` の 2 行を、`Stop-ExcelSafely $excel` の 1 行に置き換えます。Excel が落ちた後は `$book.Close()` も失敗するので、見本の 4 と 5 では `Close()` を呼ばずに `Stop-ExcelSafely` だけにしています。
+
+**試してみる**: `SafeCalc` の第 1 引数を `"log"` `"acos"` `"exp"` `"div"` に変え、どの値で計算できなくなるか確かめる。続けて見本の `.\step7.ps1` を実行し、時間切れと異常終了の扱い（4 と 5）を読む。実行には 10 秒ほどかかります。最後に `step7.bat` をダブルクリックし、終了コードで `OK` と `FAILED` に分かれるところを見る（2 つ目の呼び出しは、わざと失敗させています）。
 
 ## Step 8 : 人に渡して動かす
 
@@ -577,4 +592,5 @@ exit code = 1
 - **Excel が残った**: `Get-Process excel` で確認し、`Stop-Process -Id 番号` で終了します。自分で開いている Excel まで閉じないよう、番号を指定してください。
 - **スクリプトが止まったまま戻らない**: 見えない Excel がダイアログを出して待っています。ひな形の `$excel.Visible = $false` を `$true` にすると、何が出ているか見えます。
 - **「このシステムではスクリプトの実行が無効」と出る**: `pwsh -ExecutionPolicy Bypass -File .\my-step1.ps1` で実行します（Step 8 を参照）。
+- **エラーは出ないのに結果がおかしい**: 変数名やプロパティ名の打ち間違いを疑います。先頭に `Set-StrictMode -Version Latest` を足して実行すると、間違えた行でエラーになります（Step 7 を参照）。
 - **日本語が化ける**: Windows 標準の PowerShell 5.1（`powershell`）ではなく、PowerShell 7（`pwsh`）で実行してください（Step 8 を参照）。
