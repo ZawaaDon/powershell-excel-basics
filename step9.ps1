@@ -110,7 +110,7 @@ try {
     # --- 日付は Value で書く ---
     # Value2 で書くと、日付のシリアル値（ただの数値）が入り、表示も数値のまま
     # Value で書くと、日付の表示形式も付く
-    $dt = Get-Date -Year 2026 -Month 10 -Day 6 -Hour 13 -Minute 45 -Second 0
+    $dt = [datetime]"2026-10-06 13:45"            # Get-Date -Year … だとミリ秒が実行時の値で残る
     $vs.Range("E4").Value2 = $dt
     $vs.Range("E5").Value  = $dt
     $vs.Range("E6").Value2 = $dt.ToOADate()        # 数値で書いて、表示形式を自分で付けてもよい
